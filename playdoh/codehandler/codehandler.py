@@ -47,6 +47,7 @@ class PicklableClass(object):
         if self.isfunction:
             self.arglist = inspect.getargspec(myclass)[0]
         self.distant_dir = os.path.join(self.codedir, self.hash)
+        self.distant_dir = os.path.relpath(self.distant_dir, BASEDIR)
         self.codedependencies = []
 #        self.isloaded = False
 
@@ -57,7 +58,7 @@ class PicklableClass(object):
         global SYSPATH
         sys.path = SYSPATH[:]
         log_debug("Adding directory <%s> to sys.path" % self.distant_dir)
-        sys.path.append(self.distant_dir)
+        sys.path.append(os.path.join(BASEDIR, self.distant_dir))
 #        log_debug(sys.path)
 #        self.isloaded = True
 
@@ -74,7 +75,7 @@ class PicklableClass(object):
             name = name.replace('\\\\', '.')
             name = name.replace('\\', '.')
             loadedmodules[name] = imp.load_source(name,
-                                            os.path.join(self.distant_dir, m))
+                                            os.path.join(BASEDIR, self.distant_dir, m))
         return loadedmodules
 
     def __call__(self, *args, **kwds):
