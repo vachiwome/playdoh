@@ -4,6 +4,8 @@ from multiprocessing.connection import Listener, Client, AuthenticationError
 import cPickle
 import time
 import socket
+import traceback
+import sys
 
 
 BUFSIZE = 1024 * 32
@@ -62,11 +64,11 @@ def accept(address):
             listener = Listener(address, authkey=USERPREF['authkey'])
             conn = listener.accept()
             break
-        except Exception:
-            log_warn("The authentication key is not correct")
-            listener.close()
-            del listener
-            time.sleep(.1)
+        except:
+            raise Exception(sys.exc_info()[1])
+#             listener.close()
+#             del listener
+#             time.sleep(.1)
     client = listener.last_accepted
     return Connection(conn), client[0]
 

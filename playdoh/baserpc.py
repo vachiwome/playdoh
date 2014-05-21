@@ -10,6 +10,7 @@ import threading
 import os
 import time
 from Queue import Queue
+import traceback
 
 __all__ = ['DEFAULT_PORT', 'BaseRpcServer', 'BaseRpcClient', 'BaseRpcClients',
            'open_base_server', 'close_base_servers',
@@ -105,7 +106,7 @@ class BaseRpcServer(object):
             if procedure == 'keep_connection':
                 keep_connection = True
                 continue  # immediately waits for a procedure
-            elif procedure == 'close_connection':
+            elif procedure is None or procedure == 'close_connection':
                 keep_connection = False
                 break  # close connection
             elif procedure == 'shutdown':
@@ -135,7 +136,13 @@ class BaseRpcServer(object):
             # asks the server to close the handler or itself
             log_debug("server: processing procedure")
 #            if procedure is not None:
-            result = self.process(client, procedure)
+
+            try:
+                result = self.process(client, procedure)
+            except:
+                traceback.print_exc()
+                break
+
 #            else:
 #                log_debug("Connection error happened, exiting")
 #                result = None
@@ -188,8 +195,8 @@ class BaseRpcServer(object):
                                                      # connection
                 log_debug("Server established a connection with client %s on \
                            port %d" % (client, self.address[1]))
-            except:
-                log_warn("server: connection NOT established, closing now")
+            except Exception, e:
+                log_warn("server: connection NOT established, closing now: %s" % e.message)
                 break
 
             thread = threading.Thread(target=self.serve, args=(conn, client))
