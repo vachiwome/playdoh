@@ -16,10 +16,10 @@ DEFAULTPREF['authkey'] = 'playdohauthkey'
 DEFAULTPREF['port'] = 2718
 
 # default port
-DEFAULTPREF['connectiontrials'] = 1
+DEFAULTPREF['connectiontrials'] = 5
 
 # default connectiontimeout (in s)
-DEFAULTPREF['connectiontimeout'] = 1
+DEFAULTPREF['connectiontimeout'] = 30
 
 # default port
 DEFAULTPREF['favoriteservers'] = []
@@ -27,8 +27,6 @@ DEFAULTPREF['favoriteservers'] = []
 # default port
 DEFAULTPREF['loglevel'] = 'INFO'
 
-#maximum waiting time for a task to finish
-DEFAULTPREF['tasktimeout'] = 1
 
 class UserPref(object):
     """

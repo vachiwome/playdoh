@@ -161,6 +161,7 @@ def map(*args, **kwds):
     kwds['disconnect'] = False
     myjobs = map_async(*args, **kwds)
     results = myjobs.get_results()
+    print "jobs results are ", results
     GC.disconnect()
     return results
 

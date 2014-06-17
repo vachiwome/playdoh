@@ -6,6 +6,7 @@ import time
 import socket
 import traceback
 import sys
+import multiprocessing
 
 
 BUFSIZE = 1024 * 32
@@ -33,7 +34,7 @@ class Connection(object):
 
     def send(self, obj):
         s = cPickle.dumps(obj, -1)
-        self.conn.send(s)
+        return self.conn.send(s)
 
     def recv(self):
         trials = 5
@@ -72,6 +73,10 @@ def accept(address):
     client = listener.last_accepted
     return Connection(conn), client[0]
 
+def _new_init_timeout():
+    return time.time() + USERPREF['connectiontimeout']
+
+sys.modules['multiprocessing'].__dict__['connection']._init_timeout = _new_init_timeout
 
 def connect(address, trials=None):
     """
@@ -82,6 +87,7 @@ def connect(address, trials=None):
     conn = None
     t0 = time.time()
     timeout = USERPREF['connectiontimeout']
+#     multiprocessing.connection.CONNECTION_TIMEOUT = timeout
     for i in xrange(trials):
         try:
             conn = Client(address, authkey=USERPREF['authkey'])
@@ -102,3 +108,22 @@ def connect(address, trials=None):
     if conn is None:
         return None
     return Connection(conn)
+
+def is_server_connected(address):
+    conn = connect(address, trials=None)
+    if conn is None:
+        print "Server %s is not available. It will therefore not be used" % (str(address))
+    else:
+        conn.close()
+    return (conn != None)
+
+def validate_servers(machines, port):
+    valid_machines = []
+    for machine in machines:
+        if is_server_connected((machine, port)):
+            valid_machines.append(machine)
+            
+    return valid_machines
+
+
+
