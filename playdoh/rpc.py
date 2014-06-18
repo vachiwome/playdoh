@@ -119,6 +119,9 @@ class GlobalConnection(object):
 
     def __getattr__(self, name):
         return getattr(self.clients, name)
+    
+    def get_clients(self):
+        return self.clients
 
 GC = GlobalConnection()
 
