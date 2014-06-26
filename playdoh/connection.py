@@ -62,11 +62,12 @@ def accept(address):
             listener = Listener(address, authkey=USERPREF['authkey'])
             conn = listener.accept()
             break
-        except Exception:
-            log_warn("The authentication key is not correct")
+        except:
             listener.close()
             del listener
-            time.sleep(.1)
+            #time.sleep(.1)
+            raise Exception(sys.exc_info()[1])
+        
     client = listener.last_accepted
     return Connection(conn), client[0]
 
