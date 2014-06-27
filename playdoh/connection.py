@@ -6,6 +6,7 @@ import cPickle
 import time
 import socket
 import sys
+import threading
 
 BUFSIZE = 1024 * 32
 try:
@@ -105,18 +106,25 @@ def connect(address, trials=None):
     return Connection(conn)
 
 
-def is_server_connected(address):
-    #socket.setdefaulttimeout(2000)
+def try_to_connect(address):
     conn = connect(address, trials=None)
     if conn != None:
         conn.send("close_connection")
         conn.close()
     return (conn != None)
+    
+def is_server_connected(address):
+    thread = threading.Thread(target=try_to_connect, args=(address,))
+    thread.start()
+    thread.join(1)
+    return not thread.isAlive()
 
 def validate_servers(machines, port):
     valid_machines = []
     for machine in machines:
         if is_server_connected((machine, port)):
             valid_machines.append(machine)
+        else:
+            log_warn("Unable to connect to %s "%machine)
             
     return valid_machines

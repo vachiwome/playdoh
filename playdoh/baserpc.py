@@ -203,7 +203,6 @@ class BaseRpcServer(object):
 #             self.conn_lock.release()
             conn.close()
         log_debug("server: connection closed")
-        log_info("serve: %s connection closed" % (conn))
 
 
     def listen(self):
