@@ -1,6 +1,7 @@
 from debugtools import *
 from userpref import *
-from multiprocessing.connection import Listener, Client, AuthenticationError
+#from multiprocessing.connection import Listener, Client, AuthenticationError
+import multiprocessing.connection
 import cPickle
 import time
 import socket
@@ -60,7 +61,7 @@ def accept(address):
     """
     while True:
         try:
-            listener = Listener(address, authkey=USERPREF['authkey'])
+            listener = multiprocessing.connection.Listener(address, authkey=USERPREF['authkey'])
             conn = listener.accept()
             break
         except:
@@ -84,9 +85,9 @@ def connect(address, trials=None):
     timeout = USERPREF['connectiontimeout']
     for i in xrange(trials):
         try:
-            conn = Client(address, authkey=USERPREF['authkey'])
+            conn = multiprocessing.connection.Client(address, authkey=USERPREF['authkey'])
             break
-        except AuthenticationError as e:
+        except multiprocessing.connection.AuthenticationError as e:
             log_warn("Authentication error: %s" % str(e))
             break
         except Exception as e:
@@ -105,9 +106,10 @@ def connect(address, trials=None):
 
 
 def is_server_connected(address):
+    socket.setdefaulttimeout(2)
     conn = connect(address, trials=None)
-    conn.send("close_connection")
     if conn != None:
+        conn.send("close_connection")
         conn.close()
     return (conn != None)
 
