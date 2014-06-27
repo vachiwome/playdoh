@@ -257,7 +257,6 @@ class BaseRpcServer(object):
 
         # closing
         log_debug("Closing server")
-        n %s" % (conn))
         self.shutdown()
 
         for i in xrange(len(threads)):
