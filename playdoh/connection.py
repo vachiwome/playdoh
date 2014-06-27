@@ -40,6 +40,7 @@ class Connection(object):
                 s = self.conn.recv()
                 break
             except Exception as e:
+                log_warn("current connection is : %s" % (self.conn))
                 log_warn("Connection error (%d/%d): %s" %
                     (i + 1, trials, str(e)))
                 time.sleep(.1 * 2 ** i)
@@ -101,3 +102,19 @@ def connect(address, trials=None):
     if conn is None:
         return None
     return Connection(conn)
+
+def is_server_connected(address):
+    conn = connect(address, trials=None)
+    if conn is None:
+        print "Server %s is not available. It will therefore not be used" % (str(address))
+    else:
+        conn.close()
+    return (conn != None)
+
+def validate_servers(machines, port):
+    valid_machines = []
+    for machine in machines:
+        if is_server_connected((machine, port)):
+            valid_machines.append(machine)
+            
+    return valid_machines

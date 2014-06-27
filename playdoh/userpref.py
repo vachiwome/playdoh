@@ -16,10 +16,10 @@ DEFAULTPREF['authkey'] = 'playdohauthkey'
 DEFAULTPREF['port'] = 2718
 
 # default port
-DEFAULTPREF['connectiontrials'] = 5
+DEFAULTPREF['connectiontrials'] = 1
 
 # default connectiontimeout (in s)
-DEFAULTPREF['connectiontimeout'] = 30
+DEFAULTPREF['connectiontimeout'] = 1
 
 # default port
 DEFAULTPREF['favoriteservers'] = []

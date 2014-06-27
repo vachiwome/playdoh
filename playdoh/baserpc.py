@@ -9,6 +9,7 @@ from subprocess import Popen, PIPE
 import threading
 import os
 import time
+import traceback
 from Queue import Queue
 
 __all__ = ['DEFAULT_PORT', 'BaseRpcServer', 'BaseRpcClient', 'BaseRpcClients',
@@ -88,6 +89,39 @@ class BaseRpcServer(object):
         self.temp_result = None
         self.wait_before_accept = False
         self.acceptqueue = Queue()
+        # a map that keeps track of the states of all connections made to this server in a session
+        self.conn_states = {}
+        self.conn_lock = threading.Lock()
+
+    def house_keeping(self):
+        log_info("starting the house keeping thread")
+        restart = False
+        timedout = False
+        
+        while restart == False or timedout == False:
+            timedout = restart
+            restart = True
+            
+            self.conn_lock.acquire()
+            if len(self.conn_states) > 1:
+                for is_alive in self.conn_states.itervalues():
+                    if is_alive:
+                        # if any connection is still alive, then do not restart the server
+                        restart = False
+                        break
+            else :
+                # a single connection refers to a 'playdoh open' or a 'playdoh close' query
+                # in this case, there is no need to restart the server
+                restart = False
+            self.conn_lock.release()
+            # wait for a timeout of 3 seconds before trying again
+            time.sleep(3)
+    
+        # restart the server            
+        import subprocess
+        self.conn_states.clear()
+        subprocess.call(["playdoh", "close"])
+        subprocess.call(["playdoh", "open"])
 
     def serve(self, conn, client):
         # called in a new thread
@@ -105,7 +139,11 @@ class BaseRpcServer(object):
             if procedure == 'keep_connection':
                 keep_connection = True
                 continue  # immediately waits for a procedure
-            elif procedure is None or procedure == 'close_connection':
+            elif procedure == None:
+                print "connection %s returned a None procedure" % (conn)
+                keep_connection = False
+                break
+            elif procedure == 'close_connection':
                 keep_connection = False
                 break  # close connection
             elif procedure == 'shutdown':
@@ -160,15 +198,23 @@ class BaseRpcServer(object):
                 keep_connection = False
 
         if conn is not None:
+#             self.conn_lock.acquire()
+#             self.conn_states[conn] = False
+#             self.conn_lock.release()
             conn.close()
-            conn = None
         log_debug("server: connection closed")
+        log_info("serve: %s connection closed" % (conn))
+
 
     def listen(self):
         """
         Listens to incoming connections and create one handler for each
         new connection.
         """
+        # start the house keeping thread that takes care of live connections
+        # housekeeper = threading.Thread(target=self.house_keeping, args=())
+        #housekeeper.start()
+        
         conn = None
         threads = []
         index = 0
@@ -194,7 +240,9 @@ class BaseRpcServer(object):
             except Exception, e:
                 log_warn("server: connection NOT established, closing now: %s" % e.message)
                 break
-
+#             self.conn_lock.acquire()
+#             self.conn_states[conn] = True
+#             self.conn_lock.release()
             thread = threading.Thread(target=self.serve, args=(conn, client))
             thread.start()
             threads.append(thread)
@@ -208,6 +256,7 @@ class BaseRpcServer(object):
 
         # closing
         log_debug("Closing server")
+        log_info("Listen closing connection %s" % (conn))
         self.shutdown()
 
         for i in xrange(len(threads)):
