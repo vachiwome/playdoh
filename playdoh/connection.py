@@ -103,12 +103,13 @@ def connect(address, trials=None):
         return None
     return Connection(conn)
 
+
 def is_server_connected(address):
-    s = socket.socket()         
-    s.connect(address)
-    s.close()
-    time.sleep(3)
-    return True
+    conn = connect(address, trials=None)
+    conn.send("close_connection")
+    if conn != None:
+        conn.close()
+    return (conn != None)
 
 def validate_servers(machines, port):
     valid_machines = []
