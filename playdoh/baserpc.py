@@ -10,6 +10,7 @@ import threading
 import os
 import time
 import traceback
+import sys
 from Queue import Queue
 
 __all__ = ['DEFAULT_PORT', 'BaseRpcServer', 'BaseRpcClient', 'BaseRpcClients',
@@ -256,7 +257,7 @@ class BaseRpcServer(object):
 
         # closing
         log_debug("Closing server")
-        log_info("Listen closing connection %s" % (conn))
+        n %s" % (conn))
         self.shutdown()
 
         for i in xrange(len(threads)):
