@@ -106,7 +106,7 @@ def connect(address, trials=None):
 
 
 def is_server_connected(address):
-    socket.setdefaulttimeout(2000)
+    #socket.setdefaulttimeout(2000)
     conn = connect(address, trials=None)
     if conn != None:
         conn.send("close_connection")
