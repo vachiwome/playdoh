@@ -104,9 +104,10 @@ def connect(address, trials=None):
     return Connection(conn)
 
 def is_server_connected(address):
-#     s = socket.socket()         
-#     s.connect(address)
-#     s.close()
+    s = socket.socket()         
+    s.connect(address)
+    s.close()
+    time.sleep(3)
     return True
 
 def validate_servers(machines, port):
