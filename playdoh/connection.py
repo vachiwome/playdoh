@@ -104,12 +104,10 @@ def connect(address, trials=None):
     return Connection(conn)
 
 def is_server_connected(address):
-    conn = connect(address, trials=None)
-    if conn is None:
-        print "Server %s is not available. It will therefore not be used" % (str(address))
-    else:
-        conn.close()
-    return (conn != None)
+    s = socket.socket()         
+    s.connect(address)
+    s.close()
+    return True
 
 def validate_servers(machines, port):
     valid_machines = []
