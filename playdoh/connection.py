@@ -4,7 +4,7 @@ from multiprocessing.connection import Listener, Client, AuthenticationError
 import cPickle
 import time
 import socket
-
+import sys
 
 BUFSIZE = 1024 * 32
 try:
@@ -104,9 +104,9 @@ def connect(address, trials=None):
     return Connection(conn)
 
 def is_server_connected(address):
-    s = socket.socket()         
-    s.connect(address)
-    s.close()
+#     s = socket.socket()         
+#     s.connect(address)
+#     s.close()
     return True
 
 def validate_servers(machines, port):

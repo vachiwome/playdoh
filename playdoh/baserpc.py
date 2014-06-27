@@ -10,7 +10,6 @@ import threading
 import os
 import time
 import traceback
-import sys
 from Queue import Queue
 
 __all__ = ['DEFAULT_PORT', 'BaseRpcServer', 'BaseRpcClient', 'BaseRpcClients',
