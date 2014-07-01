@@ -107,7 +107,7 @@ class BaseRpcServer(object):
         ret_procs = []
         receiver = threading.Thread(target=self.blckng_recv_proc, args=(conn, ret_procs))
         receiver.start()
-        receiver.join(4)
+        receiver.join(2)
         if len(ret_procs) == 0:
             return None
         return ret_procs[0]
@@ -132,9 +132,10 @@ class BaseRpcServer(object):
                 # a single connection refers to a 'playdoh open' or a 'playdoh close' query
                 # in this case, there is no need to restart the server
                 restart = False
+            log_info("restart %s timedout %s" % (restart, timedout))
             self.conn_lock.release()
             # wait for a timeout of 3 seconds before trying again
-            time.sleep(5)
+            time.sleep(3)
     
         self.conn_states.clear()
         self.restart_srv()
@@ -158,6 +159,7 @@ class BaseRpcServer(object):
                 continue  # immediately waits for a procedure
             elif procedure == None:
                 print "connection %s returned a None procedure" % (conn)
+                self.restart_srv()
                 keep_connection = False
                 break
             elif procedure == 'close_connection':
@@ -174,7 +176,6 @@ class BaseRpcServer(object):
                 self.temp_result = None
                 keep_connection = False
                 break
-
             # Mechanism to close the connection while processing a procedure
             # used to fix a bug: Processes shouldn't be started on Windows
             # while a connection is opened
@@ -228,8 +229,8 @@ class BaseRpcServer(object):
         new connection.
         """
         # start the house keeping thread that takes care of live connections
-        housekeeper = threading.Thread(target=self.house_keeping, args=())
-        housekeeper.start()
+        #housekeeper = threading.Thread(target=self.house_keeping, args=())
+        #housekeeper.start()
         
         conn = None
         threads = []
