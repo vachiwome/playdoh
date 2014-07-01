@@ -6,6 +6,8 @@ from codehandler import *
 from connection import *
 from userpref import *
 from subprocess import Popen, PIPE
+
+import subprocess
 import threading
 import os
 import time
@@ -93,6 +95,23 @@ class BaseRpcServer(object):
         self.conn_states = {}
         self.conn_lock = threading.Lock()
 
+    def restart_srv(self):
+        # restart the server            
+        subprocess.call(["playdoh", "close"])
+        subprocess.call(["playdoh", "open"])
+        
+    def blckng_recv_proc(self, conn, ret_procs):
+        ret_procs.append(conn.recv())
+    
+    def nonblcking_recv_proc(self, conn):
+        ret_procs = []
+        receiver = threading.Thread(target=self.blckng_recv_proc, args=(conn, ret_procs))
+        receiver.start()
+        receiver.join(4)
+        if len(ret_procs) == 0:
+            return None
+        return ret_procs[0]
+        
     def house_keeping(self):
         log_info("starting the house keeping thread")
         restart = False
@@ -115,13 +134,10 @@ class BaseRpcServer(object):
                 restart = False
             self.conn_lock.release()
             # wait for a timeout of 3 seconds before trying again
-            time.sleep(3)
+            time.sleep(5)
     
-        # restart the server            
-        import subprocess
         self.conn_states.clear()
-        subprocess.call(["playdoh", "close"])
-        subprocess.call(["playdoh", "open"])
+        self.restart_srv()
 
     def serve(self, conn, client):
         # called in a new thread
@@ -133,7 +149,8 @@ class BaseRpcServer(object):
 
         while keep_connection is not False:
             log_debug("server: serving client <%s>..." % str(client))
-            procedure = conn.recv()
+            #procedure = conn.recv()
+            procedure = self.nonblcking_recv_proc(conn)
             log_debug("server: procedure '%s' received" % procedure)
 
             if procedure == 'keep_connection':
@@ -198,9 +215,9 @@ class BaseRpcServer(object):
                 keep_connection = False
 
         if conn is not None:
-#             self.conn_lock.acquire()
-#             self.conn_states[conn] = False
-#             self.conn_lock.release()
+            self.conn_lock.acquire()
+            self.conn_states[conn] = False
+            self.conn_lock.release()
             conn.close()
         log_debug("server: connection closed")
 
@@ -211,8 +228,8 @@ class BaseRpcServer(object):
         new connection.
         """
         # start the house keeping thread that takes care of live connections
-        # housekeeper = threading.Thread(target=self.house_keeping, args=())
-        #housekeeper.start()
+        housekeeper = threading.Thread(target=self.house_keeping, args=())
+        housekeeper.start()
         
         conn = None
         threads = []
@@ -239,9 +256,9 @@ class BaseRpcServer(object):
             except Exception, e:
                 log_warn("server: connection NOT established, closing now: %s" % e.message)
                 break
-#             self.conn_lock.acquire()
-#             self.conn_states[conn] = True
-#             self.conn_lock.release()
+            self.conn_lock.acquire()
+            self.conn_states[conn] = True
+            self.conn_lock.release()
             thread = threading.Thread(target=self.serve, args=(conn, client))
             thread.start()
             threads.append(thread)
