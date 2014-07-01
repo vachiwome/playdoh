@@ -107,7 +107,7 @@ class BaseRpcServer(object):
         ret_procs = []
         receiver = threading.Thread(target=self.blckng_recv_proc, args=(conn, ret_procs))
         receiver.start()
-        receiver.join(2)
+        receiver.join(5)
         if len(ret_procs) == 0:
             return None
         return ret_procs[0]
@@ -150,8 +150,8 @@ class BaseRpcServer(object):
 
         while keep_connection is not False:
             log_debug("server: serving client <%s>..." % str(client))
-            procedure = conn.recv()
-            #procedure = self.nonblcking_recv_proc(conn)
+            #procedure = conn.recv()
+            procedure = self.nonblcking_recv_proc(conn)
             log_debug("server: procedure '%s' received" % procedure)
 
             if procedure == 'keep_connection':
