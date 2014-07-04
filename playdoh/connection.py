@@ -143,6 +143,8 @@ def bulk_ping_loop(connections, interval, done):
         time.sleep(interval)
         for conn in connections:
             conn.ping()
+    for conn in connections:
+        conn.send("close_connection")
     
     
     
