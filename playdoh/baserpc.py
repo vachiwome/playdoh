@@ -210,6 +210,7 @@ class BaseRpcServer(object):
             except:
                 #traceback.print_exc()
                 log_info("error occured running baserpc.process()")
+                break
 #            else:
 #                log_debug("Connection error happened, exiting")
 #                result = None
