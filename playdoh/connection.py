@@ -49,6 +49,18 @@ class Connection(object):
                 if i == trials - 1:
                     return None
         return cPickle.loads(s)
+    
+    def blckng_recv(self, recv_items):
+        recv_items.append(conn.recv())
+     
+    def nonblcking_recv(self,timeout):
+        recv_items = []
+        receiver = threading.Thread(target=self.blckng_recv, args=(recv_items,))
+        receiver.start()
+        receiver.join(timeout)
+        if len(recv_items) == 0:
+            return None
+        return recv_items[0]
 
     def close(self):
         if self.conn is not None:
@@ -56,7 +68,6 @@ class Connection(object):
             self.conn = None
 
     def ping(self):
-        log_info("sending ping")
         self.send("ping")
 
 def accept(address):

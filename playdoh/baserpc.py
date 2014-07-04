@@ -139,12 +139,15 @@ class BaseRpcServer(object):
 #     
 #         self.conn_states.clear()
 #         self.restart_srv()
-
+    
+    # if the server does not receive a ping from a client
+    # in @timeout seconds then the server restarts assuming the client is dead
+    # and there is no point in serving a dead client
     def manage_client_pings(self, client, conn, timeout=3):
         restart = True
         while True:
             try:
-                if self.nonblcking_recv_proc(conn, timeout) == None:
+                if conn.nonblckng_recv(timeout) == None:
                     break
                 log_info("received ping from client %s" % client)
             except:
