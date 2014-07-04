@@ -208,7 +208,8 @@ class BaseRpcServer(object):
             try:
                 result = self.process(client, procedure)
             except:
-                traceback.print_exc()
+                #traceback.print_exc()
+                log_info("error occured running baserpc.process()")
 #            else:
 #                log_debug("Connection error happened, exiting")
 #                result = None
