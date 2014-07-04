@@ -171,7 +171,7 @@ class BaseRpcServer(object):
             elif procedure == 'keep_connection':
                 keep_connection = True
                 continue  # immediately waits for a procedure
-            elif procedure == None:
+            elif procedure == None or procedure == '':
                 print "connection %s returned a None procedure" % (conn)
                 #self.restart_srv()
                 keep_connection = False
