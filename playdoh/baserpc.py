@@ -95,50 +95,50 @@ class BaseRpcServer(object):
         self.conn_states = {}
         self.conn_lock = threading.Lock()
 
-    def restart_srv(self):
-        # restart the server            
-        subprocess.call(["playdoh", "close"])
-        subprocess.call(["playdoh", "open"])
-        
-    def blckng_recv_proc(self, conn, ret_procs):
-        ret_procs.append(conn.recv())
-    
-    def nonblcking_recv_proc(self, conn):
-        ret_procs = []
-        receiver = threading.Thread(target=self.blckng_recv_proc, args=(conn, ret_procs))
-        receiver.start()
-        receiver.join(5)
-        if len(ret_procs) == 0:
-            return None
-        return ret_procs[0]
-        
-    def house_keeping(self):
-        log_info("starting the house keeping thread")
-        restart = False
-        timedout = False
-        
-        while restart == False or timedout == False:
-            timedout = restart
-            restart = True
-            
-            self.conn_lock.acquire()
-            if len(self.conn_states) > 1:
-                for is_alive in self.conn_states.itervalues():
-                    if is_alive:
-                        # if any connection is still alive, then do not restart the server
-                        restart = False
-                        break
-            else :
-                # a single connection refers to a 'playdoh open' or a 'playdoh close' query
-                # in this case, there is no need to restart the server
-                restart = False
-            log_info("restart %s timedout %s" % (restart, timedout))
-            self.conn_lock.release()
-            # wait for a timeout of 3 seconds before trying again
-            time.sleep(3)
-    
-        self.conn_states.clear()
-        self.restart_srv()
+#     def restart_srv(self):
+#         # restart the server            
+#         subprocess.call(["playdoh", "close"])
+#         subprocess.call(["playdoh", "open"])
+#         
+#     def blckng_recv_proc(self, conn, ret_procs):
+#         ret_procs.append(conn.recv())
+#     
+#     def nonblcking_recv_proc(self, conn):
+#         ret_procs = []
+#         receiver = threading.Thread(target=self.blckng_recv_proc, args=(conn, ret_procs))
+#         receiver.start()
+#         receiver.join(5)
+#         if len(ret_procs) == 0:
+#             return None
+#         return ret_procs[0]
+#         
+#     def house_keeping(self):
+#         log_info("starting the house keeping thread")
+#         restart = False
+#         timedout = False
+#         
+#         while restart == False or timedout == False:
+#             timedout = restart
+#             restart = True
+#             
+#             self.conn_lock.acquire()
+#             if len(self.conn_states) > 1:
+#                 for is_alive in self.conn_states.itervalues():
+#                     if is_alive:
+#                         # if any connection is still alive, then do not restart the server
+#                         restart = False
+#                         break
+#             else :
+#                 # a single connection refers to a 'playdoh open' or a 'playdoh close' query
+#                 # in this case, there is no need to restart the server
+#                 restart = False
+#             log_info("restart %s timedout %s" % (restart, timedout))
+#             self.conn_lock.release()
+#             # wait for a timeout of 3 seconds before trying again
+#             time.sleep(3)
+#     
+#         self.conn_states.clear()
+#         self.restart_srv()
 
     def serve(self, conn, client):
         # called in a new thread
@@ -150,8 +150,8 @@ class BaseRpcServer(object):
 
         while keep_connection is not False:
             log_debug("server: serving client <%s>..." % str(client))
-            #procedure = conn.recv()
-            procedure = self.nonblcking_recv_proc(conn)
+            procedure = conn.recv()
+            #procedure = self.nonblcking_recv_proc(conn)
             log_debug("server: procedure '%s' received" % procedure)
 
             if procedure == 'keep_connection':
@@ -159,7 +159,7 @@ class BaseRpcServer(object):
                 continue  # immediately waits for a procedure
             elif procedure == None:
                 print "connection %s returned a None procedure" % (conn)
-                self.restart_srv()
+                #self.restart_srv()
                 keep_connection = False
                 break
             elif procedure == 'close_connection':
@@ -257,9 +257,9 @@ class BaseRpcServer(object):
             except Exception, e:
                 log_warn("server: connection NOT established, closing now: %s" % e.message)
                 break
-            self.conn_lock.acquire()
-            self.conn_states[conn] = True
-            self.conn_lock.release()
+#             self.conn_lock.acquire()
+#             self.conn_states[conn] = True
+#             self.conn_lock.release()
             thread = threading.Thread(target=self.serve, args=(conn, client))
             thread.start()
             threads.append(thread)
