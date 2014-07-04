@@ -108,28 +108,28 @@ def connect(address, trials=None):
     return Connection(conn)
 
 
-def try_to_connect(address):
+def try_to_connect(address, result):
     conn = connect(address, trials=None)
-    if conn != None:
-        conn.send("close_connection")
-        conn.close()
-    return (conn != None)
+    result[0] = conn
     
-def is_server_connected(address):
-    thread = threading.Thread(target=try_to_connect, args=(address,))
+def is_server_connected(address, result):
+    thread = threading.Thread(target=try_to_connect, args=(address,result))
     thread.start()
     thread.join(1)
-    return not thread.isAlive()
+    return result[0] != None
 
 def validate_servers(machines, port):
     valid_machines = []
+    conn_map = {}
     for machine in machines:
-        if is_server_connected((machine, port)):
+        result = [None]
+        if is_server_connected((machine, port), result):
             valid_machines.append(machine)
+            conn_map[machine] = result[0]
         else:
             log_warn("Unable to connect to %s "%machine)
             
-    return valid_machines
+    return (valid_machines, conn_map)
 
 def bulk_connect(machines, port):
     conn_map = {}
@@ -137,8 +137,8 @@ def bulk_connect(machines, port):
         conn_map[machine] = connect((machine, port))
     return conn_map
         
-def bulk_ping_loop(machines, port):
-    conn_map = bulk_connect(machines, port)
+def bulk_ping_loop(conn_map):
+    #conn_map = bulk_connect(machines, port)
     while True:
         time.sleep(2)
         for conn in conn_map.itervalues():
