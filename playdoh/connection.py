@@ -55,6 +55,8 @@ class Connection(object):
             self.conn.close()
             self.conn = None
 
+    def ping(self):
+        self.send("ping")
 
 def accept(address):
     """
@@ -128,3 +130,21 @@ def validate_servers(machines, port):
             log_warn("Unable to connect to %s "%machine)
             
     return valid_machines
+
+def bulk_connect(machines, port):
+    conn_map = {}
+    for machine in machines:
+        conn_map[machine] = connect((machine, port))
+    return conn_map
+        
+def bulk_ping_loop(machines, port):
+    conn_map = bulk_connect((machines, port))
+    while True:
+        time.sleep(2)
+        for conn in conn_map.itervalues():
+            conn.ping()
+    
+    
+    
+    
+    

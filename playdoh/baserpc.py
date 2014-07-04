@@ -95,22 +95,22 @@ class BaseRpcServer(object):
         self.conn_states = {}
         self.conn_lock = threading.Lock()
 
-#     def restart_srv(self):
-#         # restart the server            
-#         subprocess.call(["playdoh", "close"])
-#         subprocess.call(["playdoh", "open"])
-#         
-#     def blckng_recv_proc(self, conn, ret_procs):
-#         ret_procs.append(conn.recv())
-#     
-#     def nonblcking_recv_proc(self, conn):
-#         ret_procs = []
-#         receiver = threading.Thread(target=self.blckng_recv_proc, args=(conn, ret_procs))
-#         receiver.start()
-#         receiver.join(5)
-#         if len(ret_procs) == 0:
-#             return None
-#         return ret_procs[0]
+    def restart_srv(self):
+        # restart the server            
+        subprocess.call(["playdoh", "close"])
+        subprocess.call(["playdoh", "open"])
+         
+    def blckng_recv_proc(self, conn, ret_procs):
+        ret_procs.append(conn.recv())
+     
+    def nonblcking_recv_proc(self, conn, timeout):
+        ret_procs = []
+        receiver = threading.Thread(target=self.blckng_recv_proc, args=(conn, ret_procs))
+        receiver.start()
+        receiver.join(timeout)
+        if len(ret_procs) == 0:
+            return None
+        return ret_procs[0]
 #         
 #     def house_keeping(self):
 #         log_info("starting the house keeping thread")
@@ -140,6 +140,15 @@ class BaseRpcServer(object):
 #         self.conn_states.clear()
 #         self.restart_srv()
 
+    def manage_client_pings(self, client, conn, timeout=3):
+        while True:
+            if self.nonblcking_recv_proc(conn, timeout) != None:
+                break
+        log_info("client %s has passed a time out of %s, the server is restarting" % (timeout, client))
+        self.restart_srv()
+        
+        
+        
     def serve(self, conn, client):
         # called in a new thread
         keep_connection = None  # allows to receive several procedures
@@ -155,7 +164,9 @@ class BaseRpcServer(object):
             #procedure = self.nonblcking_recv_proc(conn)
             log_debug("server: procedure '%s' received" % procedure)
 
-            if procedure == 'keep_connection':
+            if procedure == 'ping':
+                self.manage_client_pings(client, conn)   
+            elif procedure == 'keep_connection':
                 keep_connection = True
                 continue  # immediately waits for a procedure
             elif procedure == None:
