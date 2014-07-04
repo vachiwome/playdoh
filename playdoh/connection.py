@@ -139,7 +139,7 @@ def bulk_connect(machines, port):
         
 def bulk_ping_loop(machines, port):
     conn_map = bulk_connect(machines, port)
-    while len(keep_connection)  > 0:
+    while True:
         time.sleep(2)
         for conn in conn_map.itervalues():
             conn.ping()
