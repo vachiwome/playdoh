@@ -143,7 +143,7 @@ class BaseRpcServer(object):
     def manage_client_pings(self, client, conn, timeout=3):
         while True:
             if self.nonblcking_recv_proc(conn, timeout) == None:
-                log_info("received a None value from %s" % client)
+                break
             log_info("received ping from client %s" % client)
             
         log_info("client %s has passed a time out of %s, the server is restarting" % (timeout, client))
