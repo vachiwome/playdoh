@@ -56,6 +56,7 @@ class Connection(object):
             self.conn = None
 
     def ping(self):
+        log_info("sending ping")
         self.send("ping")
 
 def accept(address):
