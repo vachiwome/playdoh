@@ -151,7 +151,7 @@ class BaseRpcServer(object):
         while keep_connection is not False:
             log_debug("server: serving client <%s>..." % str(client))
             procedure = conn.recv()
-            log_info("received procedure %s from client %d" % (procedure, client))
+            log_info("received procedure %s from client %s" % (procedure, client))
             #procedure = self.nonblcking_recv_proc(conn)
             log_debug("server: procedure '%s' received" % procedure)
 
