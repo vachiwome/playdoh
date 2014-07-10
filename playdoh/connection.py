@@ -33,7 +33,7 @@ class Connection(object):
 
     def send(self, obj):
         s = cPickle.dumps(obj, -1)
-        return self.conn.send(s)
+        self.conn.send(s)
 
     def recv(self):
         trials = 5
@@ -88,10 +88,10 @@ def accept(address):
     client = listener.last_accepted
     return Connection(conn), client[0]
 
-def _new_init_timeout():
-    return time.time() + USERPREF['connectiontimeout']
-
-sys.modules['multiprocessing'].__dict__['connection']._init_timeout = _new_init_timeout
+# def _new_init_timeout():
+#    return time.time() + USERPREF['connectiontimeout']
+#
+# sys.modules['multiprocessing'].__dict__['connection']._init_timeout = _new_init_timeout
 
 def connect(address, trials=None):
     """
