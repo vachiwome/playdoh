@@ -1,13 +1,12 @@
 from debugtools import *
 from userpref import *
-from multiprocessing.connection import Listener, Client, AuthenticationError
+#from multiprocessing.connection import Listener, Client, AuthenticationError
+import multiprocessing.connection
 import cPickle
 import time
 import socket
-import traceback
 import sys
-import multiprocessing
-
+import threading
 
 BUFSIZE = 1024 * 32
 try:
@@ -43,18 +42,33 @@ class Connection(object):
                 s = self.conn.recv()
                 break
             except Exception as e:
+                log_warn("current connection is : %s" % (self.conn))
                 log_warn("Connection error (%d/%d): %s" %
                     (i + 1, trials, str(e)))
                 time.sleep(.1 * 2 ** i)
                 if i == trials - 1:
                     return None
         return cPickle.loads(s)
+    
+    def blckng_recv(self, recv_items):
+        recv_items.append(conn.recv())
+     
+    def nonblcking_recv(self,timeout):
+        recv_items = []
+        receiver = threading.Thread(target=self.blckng_recv, args=(recv_items,))
+        receiver.start()
+        receiver.join(timeout)
+        if len(recv_items) == 0:
+            return None
+        return recv_items[0]
 
     def close(self):
         if self.conn is not None:
             self.conn.close()
             self.conn = None
 
+    def ping(self):
+        self.send("ping")
 
 def accept(address):
     """
@@ -62,14 +76,15 @@ def accept(address):
     """
     while True:
         try:
-            listener = Listener(address, authkey=USERPREF['authkey'])
+            listener = multiprocessing.connection.Listener(address, authkey=USERPREF['authkey'])
             conn = listener.accept()
             break
         except:
+            listener.close()
+            del listener
+            #time.sleep(.1)
             raise Exception(sys.exc_info()[1])
-#             listener.close()
-#             del listener
-#             time.sleep(.1)
+        
     client = listener.last_accepted
     return Connection(conn), client[0]
 
@@ -90,9 +105,9 @@ def connect(address, trials=None):
 #     multiprocessing.connection.CONNECTION_TIMEOUT = timeout
     for i in xrange(trials):
         try:
-            conn = Client(address, authkey=USERPREF['authkey'])
+            conn = multiprocessing.connection.Client(address, authkey=USERPREF['authkey'])
             break
-        except AuthenticationError as e:
+        except multiprocessing.connection.AuthenticationError as e:
             log_warn("Authentication error: %s" % str(e))
             break
         except Exception as e:
@@ -109,21 +124,40 @@ def connect(address, trials=None):
         return None
     return Connection(conn)
 
-def is_server_connected(address):
+# connect with a different way of returning values, 
+# convinient when using it inside a thread
+def try_to_connect(address, result):
     conn = connect(address, trials=None)
-    if conn is None:
-        print "Server %s is not available. It will therefore not be used" % (str(address))
-    else:
-        conn.close()
-    return (conn != None)
+    result[0] = conn
+    
+# check to see if the server running @address is reachable
+def is_server_connected(address, result):
+    thread = threading.Thread(target=try_to_connect, args=(address,result))
+    thread.start()
+    thread.join(1)
+    return result[0] != None
 
+# checks to find all machines that are reachable and it returns
+# a map with machines as keys and connections as values
+# machines that are unreachable are not returned
 def validate_servers(machines, port):
-    valid_machines = []
+    conn_map = {}
     for machine in machines:
-        if is_server_connected((machine, port)):
-            valid_machines.append(machine)
+        result = [None]
+        if is_server_connected((machine, port), result):
+            conn_map[machine] = result[0]
+        else:
+            log_warn("Unable to connect to %s "%machine)
             
-    return valid_machines
+    return conn_map
 
 
-
+# keep sending pings to elements of @connections 
+# on regular time @intervals until @done[0] is true        
+def bulk_ping_loop(connections, interval, done):
+    while not done[0]:
+        time.sleep(interval)
+        for conn in connections:
+            conn.ping()
+    for conn in connections:
+        conn.send("close_connection")
