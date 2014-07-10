@@ -93,10 +93,6 @@ class BaseRpcServer(object):
         self.wait_before_accept = False
         self.acceptqueue = Queue()
 
-        # a map that keeps track of the states of all connections made to this server in a session
-        self.conn_states = {}
-        self.conn_lock = threading.Lock()
-
     def restart_srv(self):
         # restart the server            
         subprocess.call(["playdoh", "close"])
@@ -241,9 +237,6 @@ class BaseRpcServer(object):
                 keep_connection = False
 
         if conn is not None:
-            self.conn_lock.acquire()
-            self.conn_states[conn] = False
-            self.conn_lock.release()
             conn.close()
         log_debug("server: connection closed")
 
@@ -265,10 +258,6 @@ class BaseRpcServer(object):
         log_debug("Initializing server with IP %s on port %d" % (LOCAL_IP,
                                                                  self.port))
         self.initialize()
-        
-        housekeeper = threading.Thread(target=self.housekeeping, args=())
-        print "Starting the house keeping thread"
-        housekeeper.start()
         
         while not self.bool_shutdown:
 
