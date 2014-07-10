@@ -6,9 +6,12 @@ from codehandler import *
 from connection import *
 from userpref import *
 from subprocess import Popen, PIPE
+
+import subprocess
 import threading
 import os
 import time
+import traceback
 from Queue import Queue
 import traceback
 
@@ -89,9 +92,73 @@ class BaseRpcServer(object):
         self.temp_result = None
         self.wait_before_accept = False
         self.acceptqueue = Queue()
-        self.threadsLock = threading.Lock()
-        self.connlock = threading.Lock()
-        self.connstates = {}
+
+        # a map that keeps track of the states of all connections made to this server in a session
+        self.conn_states = {}
+        self.conn_lock = threading.Lock()
+
+    def restart_srv(self):
+        # restart the server            
+        subprocess.call(["playdoh", "close"])
+        subprocess.call(["playdoh", "open"])
+         
+    def blckng_recv_proc(self, conn, ret_procs):
+        ret_procs.append(conn.recv())
+     
+    def nonblcking_recv_proc(self, conn, timeout):
+        ret_procs = []
+        receiver = threading.Thread(target=self.blckng_recv_proc, args=(conn, ret_procs))
+        receiver.start()
+        receiver.join(timeout)
+        if len(ret_procs) == 0:
+            return None
+        return ret_procs[0]
+#         
+#     def house_keeping(self):
+#         log_info("starting the house keeping thread")
+#         restart = False
+#         timedout = False
+#         
+#         while restart == False or timedout == False:
+#             timedout = restart
+#             restart = True
+#             
+#             self.conn_lock.acquire()
+#             if len(self.conn_states) > 1:
+#                 for is_alive in self.conn_states.itervalues():
+#                     if is_alive:
+#                         # if any connection is still alive, then do not restart the server
+#                         restart = False
+#                         break
+#             else :
+#                 # a single connection refers to a 'playdoh open' or a 'playdoh close' query
+#                 # in this case, there is no need to restart the server
+#                 restart = False
+#             log_info("restart %s timedout %s" % (restart, timedout))
+#             self.conn_lock.release()
+#             # wait for a timeout of 3 seconds before trying again
+#             time.sleep(3)
+#     
+#         self.conn_states.clear()
+#         self.restart_srv()
+    
+    # if the server does not receive a ping from a client
+    # in @timeout seconds then the server restarts assuming the client is dead
+    # and there is no point in serving a dead client
+    def manage_client_pings(self, client, conn, timeout=3):
+        restart = True
+        while True:
+            try:
+                if conn.nonblckng_recv(timeout) == None:
+                    break
+                log_info("received ping from client %s" % client)
+            except:
+                restart = False
+                break
+        if restart:
+            log_info("client %s has passed a time out of %s, the server is restarting" % (timeout, client))
+            self.restart_srv()
+        
 
     def serve(self, conn, client):
         # called in a new thread
@@ -103,10 +170,20 @@ class BaseRpcServer(object):
         while keep_connection is not False:
             log_debug("server: serving client <%s>..." % str(client))
             procedure = conn.recv()
-            log_debug("server: procedure '%s' received" % procedure) 
-            if procedure == 'keep_connection':
+            #log_info("received procedure %s from client %s through connection %s" % (procedure, client, conn))
+            #procedure = self.nonblcking_recv_proc(conn)
+            log_debug("server: procedure '%s' received" % procedure)
+
+            if procedure == 'ping':
+                self.manage_client_pings(client, conn)   
+            elif procedure == 'keep_connection':
                 keep_connection = True
                 continue  # immediately waits for a procedure
+            elif procedure == None or procedure == '':
+                print "connection %s returned a None procedure" % (conn)
+                #self.restart_srv()
+                keep_connection = False
+                break
             elif procedure == 'close_connection':
                 keep_connection = False
                 break
@@ -121,7 +198,6 @@ class BaseRpcServer(object):
                 self.temp_result = None
                 keep_connection = False
                 break
-                        
             # Mechanism to close the connection while processing a procedure
             # used to fix a bug: Processes shouldn't be started on Windows
             # while a connection is opened
@@ -137,14 +213,12 @@ class BaseRpcServer(object):
             # asks the server to close the handler or itself
             log_debug("server: processing procedure")
 #            if procedure is not None:
-
             try:
-                #log_info("processing procedure %s " % procedure)
                 result = self.process(client, procedure)
             except:
-                traceback.print_exc()
+                #traceback.print_exc()
+                log_info("error occured running baserpc.process()")
                 break
-
 #            else:
 #                log_debug("Connection error happened, exiting")
 #                result = None
@@ -166,50 +240,23 @@ class BaseRpcServer(object):
             if keep_connection is None:
                 keep_connection = False
 
-
-        if conn is not None:            
-            self.connlock.acquire()
-            self.connstates[conn] = False
-            self.connlock.release()
-            
+        if conn is not None:
+            self.conn_lock.acquire()
+            self.conn_states[conn] = False
+            self.conn_lock.release()
             conn.close()
-            conn = None
-        log_info("server: connection closed")
-     
-    def housekeeping(self):
-        restart = False
-        timedout = False
-        
-        while restart == False or timedout == False:
-            timedout = restart
-            restart = True
-            
-            self.connlock.acquire()
-            if len(self.connstates) > 1:
-                for isalive in self.connstates.itervalues():
-                    if isalive:
-                        # if any connection is still alive, then do not restart the server
-                        restart = False
-                        break
-            else :
-                # a single connection refers to a 'playdoh open' or a 'playdoh close' query
-                # in this case, there is no need to restart the server
-                restart = False
-            self.connlock.release()
-            # wait for a timeout of 3 seconds before trying again
-            time.sleep(3)
+        log_debug("server: connection closed")
 
-        # restart the server            
-        import subprocess
-        self.connstates.clear()
-        subprocess.call(["playdoh", "close"])
-        subprocess.call(["playdoh", "open"])
-        
+
     def listen(self):
         """
         Listens to incoming connections and create one handler for each
         new connection.
         """
+        # start the house keeping thread that takes care of live connections
+        #housekeeper = threading.Thread(target=self.house_keeping, args=())
+        #housekeeper.start()
+        
         conn = None
         threads = []
         index = 0
@@ -240,11 +287,9 @@ class BaseRpcServer(object):
             except Exception, e:
                 log_warn("server: connection NOT established, closing now: %s" % e.message)
                 break
-
-            self.connlock.acquire()
-            self.connstates[conn] = True
-            self.connlock.release()
-            
+#             self.conn_lock.acquire()
+#             self.conn_states[conn] = True
+#             self.conn_lock.release()
             thread = threading.Thread(target=self.serve, args=(conn, client))
             print "STARTING A THREAD FOR CLIENT ", client
             thread.start()
