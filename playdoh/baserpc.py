@@ -230,8 +230,7 @@ class BaseRpcServer(object):
                 keep_connection = False
             else:
                 log_debug("server: returning the result to the client")
-                if conn.send(result) == 0:
-                    break
+                conn.send(result)
 
             if keep_connection is None:
                 keep_connection = False
@@ -258,9 +257,8 @@ class BaseRpcServer(object):
         log_debug("Initializing server with IP %s on port %d" % (LOCAL_IP,
                                                                  self.port))
         self.initialize()
-        
-        while not self.bool_shutdown:
 
+        while not self.bool_shutdown:
             try:
                 log_debug("server: waiting for incoming connection on port \
                     %d..." % self.address[1])
@@ -280,12 +278,10 @@ class BaseRpcServer(object):
 #             self.conn_states[conn] = True
 #             self.conn_lock.release()
             thread = threading.Thread(target=self.serve, args=(conn, client))
-            print "STARTING A THREAD FOR CLIENT ", client
             thread.start()
             threads.append(thread)
             index += 1
             time.sleep(.1)
-                
 
         # Closes the connection at the end of the server lifetime
         if conn is not None:
@@ -485,22 +481,9 @@ class BaseRpcClients(object):
         return [c.is_connected() for c in self.clients]
 
     def connect(self, trials=None):
-        print "connecting clients"
         self.open_threads([client.connect for client in self.clients],
                           argss=[(trials,)] * len(self.clients))
-#         newservers = []
-#         newclients = []
-#         for i in range(len(self.clients)):
-#             if self.clients[i].is_connected():
-#                 newclients.append(self.clients[i])
-#                 newservers.append(self.servers[i])
-#         self.clients = newclients
-#         self.servers = newservers
-        self.indices = xrange(len(self.servers))
-    
-    def get_clients(self):
-        return self.clients
-    
+
     def disconnect(self):
         self.open_threads([client.disconnect for client in self.clients])
 
@@ -600,5 +583,5 @@ def restart(server=None, procedure=None):
         server = 'localhost'
     if procedure is None:
         procedure = 'restart'
-    c = BaseRpcClient((server, 2718))
+    c = BaseRpcClient((server, 27182))
     c.execute(procedure)
