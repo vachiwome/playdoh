@@ -282,9 +282,7 @@ class BaseRpcServer(object):
             thread = threading.Thread(target=self.serve, args=(conn, client))
             print "STARTING A THREAD FOR CLIENT ", client
             thread.start()
-            self.threadsLock.acquire() # will block if lock is already held
             threads.append(thread)
-            self.threadsLock.release()
             index += 1
             time.sleep(.1)
                 
