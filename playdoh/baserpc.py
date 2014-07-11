@@ -169,6 +169,7 @@ class BaseRpcServer(object):
             log_debug("server: processing procedure")
 #            if procedure is not None:
             try:
+                log_info("processing procedure %s" % procedure)
                 result = self.process(client, procedure)
             except:
                 log_info("error while processing procedure %s" % procedure)
