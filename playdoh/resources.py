@@ -32,7 +32,7 @@ def get_server_resources(servers):
     if type(servers) is not list:
         servers = [servers]
     GC.set(servers)
-    disconnect = GC.connect(raiseiferror=False)
+    disconnect = GC.connect(raiseiferror=True)
     client_name = GC.get_client_name()
     result = GC.execute_native('get_all_resources')
     for i in xrange(len(result)):
@@ -306,7 +306,7 @@ class Allocation(object):
         else:
 
             GC.set(self.servers)
-            disconnect = GC.connect(raiseiferror=False)
+            disconnect = GC.connect(raiseiferror=True)
 
             for i in xrange(len(self.servers)):
                 server = self.servers[i]

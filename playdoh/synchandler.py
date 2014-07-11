@@ -6,13 +6,11 @@ from debugtools import *
 from codehandler import *
 from threading import Thread, Lock
 from Queue import Queue
-from userpref import *
 
 import sys
 import time
 import traceback
 import os
-import threading
 
 __all__ = ['SyncHandler', 'Tubes', 'Node',
            'ParallelTask', 'TaskRun']
@@ -576,22 +574,18 @@ class SyncHandler(object):
 #        log_debug("joining local server thread")
         if self.resultqueue is not None:
             log_debug("server: waiting for the task to finish")
-            print "waiting for tasks at ", self.resultqueue
-            results = []
-            for i in self.resultqueue.keys():
-                try:
-                    result = self.resultqueue[i].get(timeout=DEFAULTPREF['tasktimeout'])
-                    results.append(result)
-                except:
-                    continue
+            results = [self.resultqueue[i].get() \
+                            for i in self.resultqueue.keys()]
+
 #        for i in self.recv_thread.keys():
 #            self.recv_thread[i].join()
-        print results
+
         time.sleep(.1)
         self.clear_pool()
         self.close_clients()
-        print "results : ", results
+
         return results
+
 
 class TaskRun(object):
     """
@@ -651,19 +645,7 @@ class TaskRun(object):
         if disconnect:
             GC.disconnect()
         return self.concatenate(info)
-                
-#     def retrive_result(self, GC):
-#         thread = threading.Thread(target=self.store_result,args=(GC,))
-#         thread.start()
-#         #thread.join(7)
-#         return self.tmp_result
-#         
-#     def store_result(self, GC):
-#         self.tmp_result = None
-#         self.tmp_result = GC.get_result()
-#         print "tmp_result"
-#         print tmp_result
-        
+
     def get_result(self):
         if not self.local:
             time.sleep(2)
@@ -675,17 +657,11 @@ class TaskRun(object):
         if not self.local:
             log_info("Retrieving task results")
         result = GC.get_result()
-        #print "GC is ", GC
-        #result = self.retrive_result(GC)
-        #print "returning result"
-        
         if disconnect:
             GC.disconnect()
-        if result is not None:
-            result = self.concatenate(result)
+        result = self.concatenate(result)
         if self.local:
             close_servers(self.get_machines())
-        print result
         return result
 
     def __repr__(self):
