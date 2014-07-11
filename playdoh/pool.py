@@ -383,7 +383,7 @@ class Pool(object):
         """
         Returns the indices of n idle units
         """
-        status = self.get_status()
+        status = self.get_status()          
         unitindices = []
         for i in xrange(len(status)):
             if status[i] == 'idle':

@@ -96,6 +96,10 @@ def accept(address):
     client = listener.last_accepted
     return Connection(conn), client[0]
 
+# def _new_init_timeout():
+#    return time.time() + USERPREF['connectiontimeout']
+#
+# sys.modules['multiprocessing'].__dict__['connection']._init_timeout = _new_init_timeout
 
 def connect(address, trials=None):
     """
@@ -106,6 +110,7 @@ def connect(address, trials=None):
     conn = None
     t0 = time.time()
     timeout = USERPREF['connectiontimeout']
+#     multiprocessing.connection.CONNECTION_TIMEOUT = timeout
     for i in xrange(trials):
         try:
             conn = multiprocessing.connection.Client(address, authkey=USERPREF['authkey'])
@@ -164,8 +169,3 @@ def bulk_ping_loop(connections, interval, done):
             conn.ping()
     for conn in connections:
         conn.send("close_connection")
-    
-    
-    
-    
-    

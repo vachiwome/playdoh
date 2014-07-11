@@ -1,0 +1,29 @@
+1)
+I changed the userpref file added a key
+called "tasktimeout". This is the maximum amount of time
+that a task is allowed to use before it finishes. This helps
+in the following scenario:
+
+if server A sends a task to server B and server B dies before
+returning the result, server A will only wait for "tasktimeout"
+seconds before assuming that server B is dead.
+
+This is implemented in the get result method in the file synchandler.py.
+
+2)
+Inside baserpc, I added a "housekeeper". This is a thread that keeps
+checking if there is any thread that is alive. If there isn't any thread
+that is alive in a period of 3 seconds. The server assumes that the 
+client process has died and even if the client has not collected the
+results, the server restarts itself and gets ready for future queries.
+
+This helps in the event that the client process terminates before
+retrieving the results of its task. The server should not block forever
+waiting for the possibly dead client to retrieve its results.
+
+This is implemented in the method "housekeeper" of the file baserpc.py.
+
+3)
+Inside "connection.py", I added a method called "validate_servers". This method
+checks if all the supplied machines have the playdoh server running. It returns
+all machines that have the server running. 

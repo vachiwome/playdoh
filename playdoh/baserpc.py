@@ -13,6 +13,7 @@ import os
 import time
 import traceback
 from Queue import Queue
+import traceback
 
 __all__ = ['DEFAULT_PORT', 'BaseRpcServer', 'BaseRpcClient', 'BaseRpcClients',
            'open_base_server', 'close_base_servers',
@@ -109,8 +110,7 @@ class BaseRpcServer(object):
         log_debug("client %s has passed a time out of %s, the server is restarting" % (client, timeout))
         self.restart_srv()
         
-        
-        
+
     def serve(self, conn, client):
         # called in a new thread
         keep_connection = None  # allows to receive several procedures
@@ -118,7 +118,6 @@ class BaseRpcServer(object):
         # None : close connection at the next iteration
         # False : close connection now
         # True : keep connection for now
-
         while keep_connection is not False:
             log_debug("server: serving client <%s>..." % str(client))
             procedure = conn.recv()
@@ -142,7 +141,7 @@ class BaseRpcServer(object):
                 break
             elif procedure == 'close_connection':
                 keep_connection = False
-                break  # close connection
+                break
             elif procedure == 'shutdown':
                 log_debug("server: shutdown signal received")
                 keep_connection = False
@@ -362,7 +361,7 @@ class BaseRpcClient(object):
 #                raise Exception("\n".join(exceptions))
 
         return result
-
+    
     def connect(self, trials=None):
         self.keep_connection = True
         self.open_connection(trials)
