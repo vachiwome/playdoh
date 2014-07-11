@@ -35,25 +35,30 @@ class Connection(object):
         s = cPickle.dumps(obj, -1)
         self.conn.send(s)
 
-    def recv(self):
+    def _recv(self, bool_verbose):
         trials = 5
         for i in xrange(trials):
             try:
                 s = self.conn.recv()
                 break
             except Exception as e:
-                log_warn("current connection is : %s" % (self.conn))
-                log_warn("Connection error (%d/%d): %s" %
-                    (i + 1, trials, str(e)))
+                if bool_verbose:
+                    log_warn("current connection is : %s" % (self.conn))
+                    log_warn("Connection error (%d/%d): %s" %
+                        (i + 1, trials, str(e)))
                 time.sleep(.1 * 2 ** i)
                 if i == trials - 1:
                     return None
         return cPickle.loads(s)
     
+    def recv(self):
+        return self._recv(True)
+        
+    
     def blckng_recv(self, recv_items):
-        recv_items.append(conn.recv())
+        recv_items.append(self._recv(False))
      
-    def nonblcking_recv(self,timeout):
+    def nonblckng_recv(self,timeout):
         recv_items = []
         receiver = threading.Thread(target=self.blckng_recv, args=(recv_items,))
         receiver.start()
@@ -61,6 +66,9 @@ class Connection(object):
         if len(recv_items) == 0:
             return None
         return recv_items[0]
+    
+    def is_alive(self, timeout):
+        return self.nonblckng_recv(timeout) != None
 
     def close(self):
         if self.conn is not None:
