@@ -95,8 +95,8 @@ class BaseRpcServer(object):
 
     def restart_srv(self):
         # restart the server            
-        subprocess.call(["playdoh", "close"])
-        subprocess.call(["playdoh", "open"])         
+        subprocess.call(["playdoh", "close"], shell=True)
+        subprocess.call(["playdoh", "open"], shell=True)         
     
     # if the server does not receive a ping from a client
     # in @timeout seconds then the server restarts assuming the client is dead
